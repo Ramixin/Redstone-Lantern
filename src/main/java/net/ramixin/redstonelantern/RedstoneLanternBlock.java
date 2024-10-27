@@ -8,7 +8,6 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.StateManager;
-import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.random.Random;
@@ -34,7 +33,7 @@ public class RedstoneLanternBlock extends LanternBlock {
 
     @Override
     protected int getStrongRedstonePower(BlockState state, BlockView world, BlockPos pos, Direction direction) {
-        return !state.get(LanternBlock.HANGING) && direction == Direction.DOWN && state.get(LIT) ? 15 : 0;
+        return 0;
     }
 
     @Override
@@ -55,23 +54,25 @@ public class RedstoneLanternBlock extends LanternBlock {
         while(list != null && !list.isEmpty() && world.getTime() - (list.getFirst()).time > 60L) list.removeFirst();
 
         if(state.get(LIT)) {
-            if (shouldUnpower(world, pos)) world.setBlockState(pos, state.with(LIT, false), 3);
+            if (shouldBeOff(state, world, pos)) world.setBlockState(pos, state.with(LIT, false), 3);
             if (RedstoneTorchBlock.isBurnedOut(world, pos, true)) {
                 world.syncWorldEvent(1502, pos, 0);
                 world.scheduleBlockTick(pos, world.getBlockState(pos).getBlock(), 160);
             }
         } else
-            if(!shouldUnpower(world, pos) && !RedstoneTorchBlock.isBurnedOut(world, pos, false)) world.setBlockState(pos, state.with(LIT, true), 3);
+            if(!shouldBeOff(state, world, pos) && !RedstoneTorchBlock.isBurnedOut(world, pos, false)) world.setBlockState(pos, state.with(LIT, true), 3);
     }
 
     @Override
     protected void neighborUpdate(BlockState state, World world, BlockPos pos, Block sourceBlock, @Nullable WireOrientation wireOrientation, boolean notify) {
-        if (state.get(LIT) == this.shouldUnpower(world, pos) && state.get(HANGING) && !world.getBlockTickScheduler().isTicking(pos, this))
+        if(state.get(LIT) == this.shouldBeOff(state, world, pos))
             world.scheduleBlockTick(pos, this, 2);
         super.neighborUpdate(state, world, pos, sourceBlock, wireOrientation, notify);
     }
 
-    protected boolean shouldUnpower(World world, BlockPos pos) {
-        return world.isEmittingRedstonePower(pos.up(), Direction.UP);
+    protected boolean shouldBeOff(BlockState state,World world, BlockPos pos) {
+        if(state.get(HANGING)) return world.isEmittingRedstonePower(pos.up(), Direction.UP);
+        else return world.isEmittingRedstonePower(pos.down(), Direction.DOWN);
+
     }
 }

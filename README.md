@@ -17,6 +17,10 @@
 
 </div>
 
+## Does it interact with Redstone?
+
+---
+Yes! The Redstone lantern can weak power redstone along the four cardinal directions around it. The lantern can also be disabled by hanging it on a block and then strong powering that block.
 
 ## License
 
