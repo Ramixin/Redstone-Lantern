@@ -1,0 +1,5 @@
+accessWidener v2 named
+
+accessible field net/minecraft/block/RedstoneTorchBlock BURNOUT_MAP Ljava/util/Map;
+accessible method net/minecraft/block/RedstoneTorchBlock isBurnedOut (Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Z)Z
+accessible field net/minecraft/block/RedstoneTorchBlock$BurnoutEntry time J
