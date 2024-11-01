@@ -20,6 +20,7 @@ import java.util.List;
 
 import static net.minecraft.block.RedstoneTorchBlock.LIT;
 
+@SuppressWarnings("deprecation")
 public class RedstoneLanternBlock extends LanternBlock {
 
     public RedstoneLanternBlock(Settings settings) {
@@ -27,12 +28,12 @@ public class RedstoneLanternBlock extends LanternBlock {
     }
 
     @Override
-    protected int getWeakRedstonePower(BlockState state, BlockView world, BlockPos pos, Direction direction) {
+    public int getWeakRedstonePower(BlockState state, BlockView world, BlockPos pos, Direction direction) {
         return direction != Direction.UP && direction != Direction.DOWN && state.get(LIT) ? 15 : 0;
     }
 
     @Override
-    protected int getStrongRedstonePower(BlockState state, BlockView world, BlockPos pos, Direction direction) {
+    public int getStrongRedstonePower(BlockState state, BlockView world, BlockPos pos, Direction direction) {
         return 0;
     }
 
@@ -49,7 +50,7 @@ public class RedstoneLanternBlock extends LanternBlock {
     }
 
     @Override
-    protected void scheduledTick(BlockState state, ServerWorld world, BlockPos pos, Random random) {
+    public void scheduledTick(BlockState state, ServerWorld world, BlockPos pos, Random random) {
         List<RedstoneTorchBlock.BurnoutEntry> list = RedstoneTorchBlock.BURNOUT_MAP.get(world);
         while(list != null && !list.isEmpty() && world.getTime() - (list.getFirst()).time > 60L) list.removeFirst();
 
@@ -70,7 +71,7 @@ public class RedstoneLanternBlock extends LanternBlock {
         super.neighborUpdate(state, world, pos, sourceBlock, wireOrientation, notify);
     }
 
-    protected boolean shouldBeOff(BlockState state,World world, BlockPos pos) {
+    protected boolean shouldBeOff(BlockState state, World world, BlockPos pos) {
         if(state.get(HANGING)) return world.isEmittingRedstonePower(pos.up(), Direction.UP);
         else return world.isEmittingRedstonePower(pos.down(), Direction.DOWN);
 

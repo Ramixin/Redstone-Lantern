@@ -3,8 +3,8 @@
   "id": "redstonelantern",
   "version": "${version}",
   "name": "RedstoneLantern",
-  "description": "",
-  "authors": [],
+  "description": "A mod that adds a Redstone Lantern",
+  "authors": ["Ramixin"],
   "contact": {},
   "license": "MIT",
   "icon": "assets/redstonelantern/icon.png",
@@ -21,6 +21,6 @@
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric": "*",
-    "minecraft": ["1.21.3", "1.21.2"]
+    "minecraft": [">=1.21.2"]
   }
 }
