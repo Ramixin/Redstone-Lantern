@@ -1,79 +1,81 @@
 package net.ramixin.redstonelantern;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.LanternBlock;
-import net.minecraft.block.RedstoneTorchBlock;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.state.StateManager;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.BlockView;
-import net.minecraft.world.World;
-import net.minecraft.world.block.WireOrientation;
-import org.jetbrains.annotations.Nullable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.LanternBlock;
+import net.minecraft.world.level.block.RedstoneTorchBlock;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.redstone.Orientation;
+import net.ramixin.redstonelantern.mixins.RedstoneTorchBlockAccessor;
+import net.ramixin.redstonelantern.mixins.ToggleAccessor;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
-import static net.minecraft.block.RedstoneTorchBlock.LIT;
+import static net.minecraft.world.level.block.RedstoneTorchBlock.LIT;
 
-@SuppressWarnings("deprecation")
 public class RedstoneLanternBlock extends LanternBlock {
 
-    public RedstoneLanternBlock(Settings settings) {
+    public RedstoneLanternBlock(BlockBehaviour.Properties settings) {
         super(settings);
     }
 
     @Override
-    public int getWeakRedstonePower(BlockState state, BlockView world, BlockPos pos, Direction direction) {
-        return direction != Direction.UP && direction != Direction.DOWN && state.get(LIT) ? 15 : 0;
+    protected int getSignal(@NonNull BlockState state, @NonNull BlockGetter blockGetter, @NonNull BlockPos blockPos, @NonNull Direction direction) {
+        return direction != Direction.UP && direction != Direction.DOWN && state.getValue(LIT) ? 15 : 0;
     }
 
     @Override
-    public int getStrongRedstonePower(BlockState state, BlockView world, BlockPos pos, Direction direction) {
+    protected int getDirectSignal(@NonNull BlockState state, @NonNull BlockGetter blockGetter, @NonNull BlockPos blockPos, @NonNull Direction direction) {
         return 0;
     }
 
     @Override
-    public void onPlaced(World world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {
-        super.onPlaced(world, pos, state, placer, itemStack);
-        if(!world.isClient()) scheduledTick(state, (ServerWorld) world, pos, world.random);
+    public void setPlacedBy(@NonNull Level level, @NonNull BlockPos pos, @NonNull BlockState state, @Nullable LivingEntity livingEntity, @NonNull ItemStack itemStack) {
+        super.setPlacedBy(level, pos, state, livingEntity, itemStack);
+        if(!level.isClientSide()) tick(state, (ServerLevel) level, pos, level.random);
     }
 
     @Override
-    protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
-        super.appendProperties(builder);
+    protected void createBlockStateDefinition(StateDefinition.@NonNull Builder<Block, BlockState> builder) {
+        super.createBlockStateDefinition(builder);
         builder.add(LIT);
     }
 
     @Override
-    public void scheduledTick(BlockState state, ServerWorld world, BlockPos pos, Random random) {
-        List<RedstoneTorchBlock.BurnoutEntry> list = RedstoneTorchBlock.BURNOUT_MAP.get(world);
-        while(list != null && !list.isEmpty() && world.getTime() - (list.getFirst()).time > 60L) list.removeFirst();
-
-        if(state.get(LIT)) {
-            if (shouldBeOff(state, world, pos)) world.setBlockState(pos, state.with(LIT, false), 3);
-            if (RedstoneTorchBlock.isBurnedOut(world, pos, true)) {
-                world.syncWorldEvent(1502, pos, 0);
-                world.scheduleBlockTick(pos, world.getBlockState(pos).getBlock(), 160);
+    protected void tick(@NonNull BlockState state, @NonNull ServerLevel level, @NonNull BlockPos pos, @NonNull RandomSource randomSource) {
+        List<RedstoneTorchBlock.Toggle> list = RedstoneTorchBlockAccessor.accessRecentTokens().get(level);
+        while(list != null && !list.isEmpty() && level.getGameTime() - ((ToggleAccessor) list.getFirst()).accessWhen() > 60L) list.removeFirst();
+        if(state.getValue(LIT)) {
+            if (shouldBeOff(state, level, pos)) level.setBlock(pos, state.setValue(LIT, false), 3);
+            if (RedstoneTorchBlockAccessor.invokeIsToggledTooFrequently(level, pos, true)) {
+                level.levelEvent(1502, pos, 0);
+                level.scheduleTick(pos, level.getBlockState(pos).getBlock(), 160);
             }
         } else
-            if(!shouldBeOff(state, world, pos) && !RedstoneTorchBlock.isBurnedOut(world, pos, false)) world.setBlockState(pos, state.with(LIT, true), 3);
+        if(!shouldBeOff(state, level, pos) && !RedstoneTorchBlockAccessor.invokeIsToggledTooFrequently(level, pos, false)) level.setBlock(pos, state.setValue(LIT, true), 3);
     }
 
     @Override
-    protected void neighborUpdate(BlockState state, World world, BlockPos pos, Block sourceBlock, @Nullable WireOrientation wireOrientation, boolean notify) {
-        if(state.get(LIT) == this.shouldBeOff(state, world, pos))
-            world.scheduleBlockTick(pos, this, 2);
-        super.neighborUpdate(state, world, pos, sourceBlock, wireOrientation, notify);
+    protected void neighborChanged(BlockState state, @NonNull Level level, @NonNull BlockPos pos, @NonNull Block sourceBlock, @Nullable Orientation wireOrientation, boolean notify) {
+        if(state.getValue(LIT) == this.shouldBeOff(state, level, pos))
+            level.scheduleTick(pos, this, 2);
+        super.neighborChanged(state, level, pos, sourceBlock, wireOrientation, notify);
     }
 
-    protected boolean shouldBeOff(BlockState state, World world, BlockPos pos) {
-        if(state.get(HANGING)) return world.isEmittingRedstonePower(pos.up(), Direction.UP);
-        else return world.isEmittingRedstonePower(pos.down(), Direction.DOWN);
+    protected boolean shouldBeOff(BlockState state, Level level, BlockPos pos) {
+        if(state.getValue(HANGING)) return level.hasSignal(pos.above(), Direction.UP);
+        else return level.hasSignal(pos.below(), Direction.DOWN);
 
     }
 }

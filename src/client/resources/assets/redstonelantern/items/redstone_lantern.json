@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "redstonelantern:item/redstone_lantern"
+  }
+}

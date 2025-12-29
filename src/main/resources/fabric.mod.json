@@ -9,7 +9,6 @@
   "license": "MIT",
   "icon": "assets/redstonelantern/icon.png",
   "environment": "*",
-  "accessWidener": "redstonelantern.accesswidener",
   "entrypoints": {
     "client": [
       "net.ramixin.redstonelantern.client.RedstoneLanternClient"
@@ -18,9 +17,12 @@
       "net.ramixin.redstonelantern.RedstoneLantern"
     ]
   },
+  "mixins": [
+    "redstonelantern.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric": "*",
-    "minecraft": [">=1.21.2"]
+    "minecraft": [">=1.21.11"]
   }
 }
